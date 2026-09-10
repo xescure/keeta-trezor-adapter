@@ -8,6 +8,7 @@
     pkgs.rust-analyzer
     pkgs.pkg-config
     pkgs.libusb1
+    pkgs.websocat
     (pkgs.python3.withPackages (ps: [ ps.ecdsa ]))
   ];
 
@@ -36,12 +37,18 @@
 
   scripts.py-test.exec = "python3 recovery/keeta_trezor_address.py --self-test";
 
-  # Trezor Safe 3 (T3B1) emulator for the gated integration test.
-  # Loads the public 'abandon ... about' mnemonic, no PIN, no passphrase.
+  # Trezor Safe 3 (T3B1) emulator from trezor-user-env. Foreground; Ctrl-C stops it.
   scripts.emulator.exec = ''
+    exec docker run --rm --network host --name trezor-user-env ghcr.io/trezor/trezor-user-env
+  '';
+
+  # Start a wiped T3B1 emulator and load the PUBLIC test mnemonic (no PIN, no passphrase).
+  # Run after `emulator` is up. Test-only seed; never load a real seed this way.
+  scripts.emulator-setup.exec = ''
     set -e
-    docker run --rm -it --network host --name trezor-user-env \
-      -e TREZOR_EMULATOR_MODEL=T3B1 \
-      ghcr.io/trezor/trezor-user-env:latest
+    send() { (echo "$1"; sleep "$2") | websocat -t ws://127.0.0.1:9001 | grep -v '"firmwares"'; }
+    send '{"type":"emulator-start","model":"T3B1","version":"-latest","wipe":true}' 10
+    send '{"type":"emulator-setup","mnemonic":"abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about","pin":"","passphrase_protection":false,"label":"keeta-test","needs_backup":false}' 8
+    send '{"type":"background-check"}' 2
   '';
 }
