@@ -77,8 +77,25 @@ mod tests {
     #[test]
     fn address_with_bad_checksum_is_rejected() {
         let mut bad = ADDRESS.to_string();
-        bad.replace_range(bad.len() - 1.., "a");
+        let mid = 30;
+        let c = bad.as_bytes()[mid] as char;
+        let replacement = if c == 'a' { 'b' } else { 'a' };
+        bad.replace_range(mid..mid + 1, &replacement.to_string());
         assert!(pubkey_from_address(&bad).is_err());
+    }
+
+    #[test]
+    fn non_canonical_last_char_decodes_to_same_key_and_recanonicalizes() {
+        // The last base32 character carries 3 unused bits, so `…ibi` and `…ibj`
+        // decode to the same key. The canonical spelling comes from re-encoding.
+        let mut alt = ADDRESS.to_string();
+        alt.replace_range(alt.len() - 1.., "j");
+        assert_ne!(alt, ADDRESS);
+        assert_eq!(pubkey_from_address(&alt).unwrap(), pubkey());
+        assert_eq!(
+            address_from_pubkey(&pubkey_from_address(&alt).unwrap()).unwrap(),
+            ADDRESS
+        );
     }
 
     #[test]

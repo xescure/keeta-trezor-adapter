@@ -63,6 +63,7 @@ fn run(args: &[&str]) -> std::process::Output {
 }
 
 #[test]
+#[ignore = "needs KEETA_TREZOR_EMULATOR=1 and a running trezor-user-env emulator"]
 fn address_matches_handoff_vector() {
     if !enabled() {
         eprintln!("skipped: set KEETA_TREZOR_EMULATOR=1");
@@ -90,6 +91,7 @@ fn address_matches_handoff_vector() {
 }
 
 #[test]
+#[ignore = "needs KEETA_TREZOR_EMULATOR=1 and a running trezor-user-env emulator"]
 fn sign_produces_verifiable_line() {
     if !enabled() {
         eprintln!("skipped: set KEETA_TREZOR_EMULATOR=1");
@@ -124,6 +126,7 @@ fn sign_produces_verifiable_line() {
 }
 
 #[test]
+#[ignore = "needs KEETA_TREZOR_EMULATOR=1 and a running trezor-user-env emulator"]
 fn sign_with_wrong_expect_fails_and_prints_nothing() {
     if !enabled() {
         eprintln!("skipped: set KEETA_TREZOR_EMULATOR=1");

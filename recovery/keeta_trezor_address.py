@@ -106,6 +106,8 @@ def self_test() -> int:
           "m/13'/1300177738'/1772559091'/849607749'/942002604'")
     check("path gpg://keeta-cold@local 1", fmt_path(identity_path("gpg://keeta-cold@local", 1)),
           "m/13'/1060405250'/1211320303'/1886099059'/1452342816'")
+    check("path gpg://keeta-cold@vault 1", fmt_path(identity_path("gpg://keeta-cold@vault", 1)),
+          "m/13'/3651116'/98985603'/1318097991'/1014682335'")
 
     # End-to-end chain vector (handoff 11.1, confirmed by the Keeta JS SDK)
     pub = _pub(slip10_derive(bip39_seed(mn, ""), identity_path("gpg://keeta-cold@vault", 0)))

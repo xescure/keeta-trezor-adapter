@@ -9,7 +9,6 @@ publish = false
 [dependencies]
 trezor-client = { version = "=0.1.6", default-features = false }
 keetanetwork-account = "=0.4.0"
-keetanetwork-crypto = "=0.3.0"
 sha3 = "=0.10.9"
 sha2 = "=0.10.9"
 hex = "=0.4.3"
@@ -18,3 +17,4 @@ thiserror = "=2.0.20"
 
 [dev-dependencies]
 p256 = { version = "=0.13.2", features = ["ecdsa"] }
+keetanetwork-crypto = "=0.3.0"

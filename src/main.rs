@@ -96,8 +96,8 @@ fn print_identity(identity: &Identity) {
 }
 
 fn run_address(identity: &Identity, expect: Option<&str>) -> Result<()> {
-    print_identity(identity);
     let expected = expect.map(keeta::pubkey_from_address).transpose()?;
+    print_identity(identity);
     eprintln!(
         "Confirm 'Sign GPG' with '{}' on the device.",
         identity.display_string()
@@ -151,7 +151,8 @@ fn run_sign(block_hash_hex: &str, identity: &Identity, expect: &str, yes: bool) 
     let reply = trezor::sign_identity(identity, digest, &cli::visual_summary(&block_hash))?;
 
     if reply.pubkey != expected_pubkey {
-        let got = keeta::address_from_pubkey(&reply.pubkey)?;
+        let got = keeta::address_from_pubkey(&reply.pubkey)
+            .unwrap_or_else(|_| format!("pubkey {}", hex::encode(reply.pubkey)));
         return Err(Error::UnexpectedKey {
             got,
             expected: expect.to_string(),
@@ -159,7 +160,8 @@ fn run_sign(block_hash_hex: &str, identity: &Identity, expect: &str, yes: bool) 
     }
     keeta::verify_block_signature(&reply.pubkey, &block_hash, &reply.signature)?;
 
+    let address = keeta::address_from_pubkey(&reply.pubkey)?;
     eprintln!("verified : ok");
-    println!("{expect} {}", hex::encode(reply.signature));
+    println!("{address} {}", hex::encode(reply.signature));
     Ok(())
 }

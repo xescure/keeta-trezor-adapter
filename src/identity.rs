@@ -91,6 +91,20 @@ mod tests {
     }
 
     #[test]
+    fn path_vector_vault_index_1() {
+        assert_eq!(
+            id("keeta-cold", "vault", 1).path_string(),
+            "m/13'/3651116'/98985603'/1318097991'/1014682335'"
+        );
+    }
+
+    #[test]
+    fn protocol_constants_select_gpg_on_p256() {
+        assert_eq!(Identity::PROTO, "gpg");
+        assert_eq!(Identity::CURVE, "nist256p1");
+    }
+
+    #[test]
     fn default_identity_path() {
         // gpg://keeta@keeta index 0, computed with the Python recovery script logic.
         assert_eq!(

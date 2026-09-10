@@ -17,6 +17,9 @@ hash.
    Write `gpg://keeta@keeta`, the index, and `nist256p1` next to your seed backup.
 2. `keeta-trezor address --index N`. Confirm "Sign GPG" with `keeta@keeta` on
    the device. Write the printed address on paper.
+   If your seed uses a passphrase, the device asks for it on its own screen;
+   the tool never takes a passphrase. A different passphrase gives a
+   different key and address, which `--expect` catches on later runs.
 3. Cross-check with the independent Python script:
    `python3 recovery/keeta_trezor_address.py --identity gpg://keeta@keeta --index N --pubkey <pubkey hex>`
    The address must match.
@@ -49,13 +52,22 @@ devenv shell
 check            # fmt, clippy, tests, python vectors
 emulator         # terminal 1: trezor-user-env container (docker, host network)
 emulator-setup   # terminal 2: start a wiped T3B1 emulator, load the PUBLIC test mnemonic
-KEETA_TREZOR_EMULATOR=1 cargo test --locked --test emulator -- --test-threads=1
+KEETA_TREZOR_EMULATOR=1 cargo test --locked --test emulator -- --ignored --test-threads=1
 ```
+
+The emulator tests are `#[ignore]`d and require `--ignored` to run; without
+it (or without `KEETA_TREZOR_EMULATOR=1`), `cargo test` reports them as
+skipped rather than passed, so a plain test run cannot be mistaken for a real
+emulator run.
 
 The emulator tests press the device button through its debuglink port
 themselves. Do not use trezor-user-env's `emulator-press-yes` while the tool
 is waiting on the device: the controller pings the device port first and the
 emulator then answers the controller instead of the tool.
+
+Entering the shell refreshes `~/.cargo/bin/rustfmt` to point at the shell's
+rustfmt (the Keeta ASN.1 build script needs it there). On a machine that uses
+rustup, that replaces the rustup shim.
 
 Verified on the emulator (firmware 2.12.4, T3B1): the returned key matches
 the handoff vector, and a signature produced this way verifies with both the
