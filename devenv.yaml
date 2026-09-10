@@ -1,0 +1,6 @@
+inputs:
+  nixpkgs:
+    url: github:NixOS/nixpkgs/nixos-unstable
+nixpkgs:
+  permitted_insecure_packages:
+    - python3.14-ecdsa-0.19.2
