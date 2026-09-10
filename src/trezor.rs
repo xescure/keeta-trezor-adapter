@@ -3,10 +3,6 @@
 //! firmware `core/src/apps/misc/sign_identity.py`), so we pass the exact
 //! 32-byte digest Keeta expects. The reply signature is `0x00 || r || s`.
 
-// wired in by main in a later task; sign_identity and its Reply fields are
-// unused until then.
-#![allow(dead_code)]
-
 use crate::error::{Error, Result};
 use crate::identity::Identity;
 use trezor_client::client::handle_interaction;
@@ -72,7 +68,6 @@ fn build_request(
 /// Connect to the single attached Trezor (USB or emulator on UDP 21324),
 /// send the request, drive button/passphrase prompts, and parse the reply.
 /// Blocking: waits for the user to confirm on the device.
-// wired in by main in a later task
 pub fn sign_identity(
     identity: &Identity,
     challenge_hidden: [u8; 32],

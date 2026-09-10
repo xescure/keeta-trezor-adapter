@@ -1,5 +1,3 @@
-#![allow(dead_code)] // used by main in a later task
-
 //! SLIP-0013 identity → derivation path, as computed by Trezor firmware
 //! (`core/src/apps/misc/sign_identity.py::get_identity_path`).
 //! Display only: the device derives the key itself. This lets the user record

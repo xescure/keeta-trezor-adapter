@@ -1,5 +1,3 @@
-#![allow(dead_code)] // used by main in a later task
-
 //! Keeta address encoding and signature verification, via the official SDK
 //! crates so the tool cannot drift from what the network accepts.
 
