@@ -3,7 +3,7 @@ name = "keeta-trezor"
 version = "0.1.0"
 edition = "2021"
 description = "Sign Keeta block hashes with a Trezor Safe 3 (SLIP-0013 P-256 identity key)"
-license = "MIT"
+license = "MPL-2.0"
 publish = false
 
 [dependencies]
