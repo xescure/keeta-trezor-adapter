@@ -1,78 +1,64 @@
 # keeta-trezor
 
-Sign Keeta block hashes with a Trezor Safe 3, and get a rock-solid Keeta
-address for the key the device derives. Companion to
-[keeta-block-inspector](../keeta-block-inspector), which reviews the block and
-publishes it; this tool only signs.
+`keeta-trezor` signs [Keeta][keeta] block hashes with a Trezor hardware wallet.
+It is a work-in-progress stopgap: Trezor firmware has no Keeta support, so signing goes through the firmware's GPG identity signing (`SignIdentity`, [SLIP-0013][slip13]) instead.
+It has been used with a Trezor Safe 3 to sign blocks accepted on the Keeta main network.
 
-The key is a P-256 key derived on the Trezor via SLIP-0013 `SignIdentity`
-(`gpg://keeta@keeta`, index 0 by default). The Trezor signs blind: it shows
-"Sign GPG", the identity, and a short prefix of the block hash. Everything
-about *what* the block does is checked in the inspector before you copy the
-hash.
+## Keys and addresses
 
-## Setup ceremony (once per account)
+The signing key is an ECDSA secp256r1 (`nist256p1`) key derived on the device from a SLIP-0013 identity `gpg://<user>@<host>` and an index.
+The defaults are `keeta`, `keeta`, and `0`, and each index is an independent key.
+The Keeta address is the type-6 (ECDSA secp256r1) address of the public key the device returns.
 
-1. Decide the identity (defaults `--user keeta --host keeta`) and index.
-   Write `gpg://keeta@keeta`, the index, and `nist256p1` next to your seed backup.
-2. `keeta-trezor address --index N`. Confirm "Sign GPG" with `keeta@keeta` on
-   the device. Write the printed address on paper.
-   If your seed uses a passphrase, the device asks for it on its own screen;
-   the tool never takes a passphrase. A different passphrase gives a
-   different key and address, which `--expect` catches on later runs.
-3. Cross-check with the independent Python script:
-   `python3 recovery/keeta_trezor_address.py --identity gpg://keeta@keeta --index N --pubkey <pubkey hex>`
-   The address must match.
-4. Fund only the paper address. Testnet first.
+## Signing
 
-Multiple accounts: keep the identity, bump `--index`. Each index is an
-independent key. The index is not shown on the device, so the terminal and
-your paper record are what tell them apart. `keeta-trezor address --index N`
-also prints the derivation path; record it with the address.
+Keeta verifies a block signature as ECDSA over `SHA3-256(block hash)`.
+In GPG mode the device signs `challenge_hidden` as given, so the tool sends `SHA3-256(block hash)` and the result is a signature the network accepts.
+The tool verifies the signature with the [Keeta SDK][sdk] before printing it.
 
-## Signing (per transaction)
+The device displays the identity and a prefix of the block hash -- it does not decode the block.
+The displayed text (`challenge_visual`) is not bound to the signed bytes, so the screen is only as trustworthy as the host that sent it.
 
-1. Online: write a draft with the Trezor address as account and signer, run
-   `npm run propose` in the inspector project, keep the proposal JSON and hash.
-2. Offline: paste the JSON into `keeta-block-inspector.html`, read every
-   operation, confirm the hash.
-3. `keeta-trezor sign <hash> --expect <address> [--index N]`. Type the last 6
-   hex chars of the hash. Check the device shows the same identity and hash
-   prefix, confirm.
-4. Copy the printed line (`address signature`) into the publisher's
-   signatures box together with the proposal JSON. Assemble, Transmit.
+## Usage
 
-`--expect` pins the signing key: if the device returns a different key
-(passphrase typo, wrong identity or index), nothing is printed.
+```
+keeta-trezor address [--user keeta] [--host keeta] [--index 0]
+keeta-trezor sign <block hash> --expect <address> [--index 0]
+```
+
+`address` prints the identity, derivation path, public key, and Keeta address.
+`sign` prints one line, `<address> <signature hex>`, and prints nothing if the device key differs from `--expect` (e.g., a different passphrase, identity, or index).
+It asks for the last six hex characters of the hash before contacting the device.
+A passphrase is entered on the device; the tool never handles it.
+
+## Recovery
+
+[`recovery/keeta_trezor_address.py`](recovery/keeta_trezor_address.py) derives the same key and address from the mnemonic ([BIP-39][bip39], [SLIP-0010][slip10], SLIP-0013) without the device, and is intended for offline use only.
+With `--pubkey` it computes the address from a device public key instead, and `--self-test` runs its test vectors.
 
 ## Development
 
+`nix build` builds the binary and runs the unit tests, and `nix run . -- <args>` runs it.
+The development shell is [devenv][devenv], where `check` runs formatting, lints, tests, and the recovery script's vectors.
+The emulator tests are ignored by default and run against [trezor-user-env][tue]:
+
 ```
-devenv shell
-check            # fmt, clippy, tests, python vectors
-emulator         # terminal 1: trezor-user-env container (docker, host network)
-emulator-setup   # terminal 2: start a wiped T3B1 emulator, load the PUBLIC test mnemonic
+emulator          # terminal 1
+emulator-setup    # terminal 2, loads the public test mnemonic
 KEETA_TREZOR_EMULATOR=1 cargo test --locked --test emulator -- --ignored --test-threads=1
 ```
 
-The emulator tests are `#[ignore]`d and require `--ignored` to run; without
-it (or without `KEETA_TREZOR_EMULATOR=1`), `cargo test` reports them as
-skipped rather than passed, so a plain test run cannot be mistaken for a real
-emulator run.
+Entering the shell points `~/.cargo/bin/rustfmt` at the shell's `rustfmt`, which the Keeta ASN.1 build script requires.
+`devenv.yaml` permits the Python `ecdsa` package despite CVE-2024-23342, a timing side channel in signing, because the recovery script only derives keys.
 
-The emulator tests press the device button through its debuglink port
-themselves. Do not use trezor-user-env's `emulator-press-yes` while the tool
-is waiting on the device: the controller pings the device port first and the
-emulator then answers the controller instead of the tool.
+## License
 
-Entering the shell refreshes `~/.cargo/bin/rustfmt` to point at the shell's
-rustfmt (the Keeta ASN.1 build script needs it there). On a machine that uses
-rustup, that replaces the rustup shim.
+[MPL-2.0](LICENSE)
 
-Verified on the emulator (firmware 2.12.4, T3B1): the returned key matches
-the handoff vector, and a signature produced this way verifies with both the
-Rust and the JS Keeta SDK.
-
-Note on the Python `ecdsa` package: nixpkgs flags it for CVE-2024-23342 (a
-timing side channel when *signing*). The recovery script only derives keys,
-offline, in break-glass mode, so `devenv.yaml` permits the package.
+[keeta]: https://keeta.com/
+[sdk]: https://crates.io/crates/keetanetwork-account
+[slip13]: https://github.com/satoshilabs/slips/blob/master/slip-0013.md
+[slip10]: https://github.com/satoshilabs/slips/blob/master/slip-0010.md
+[bip39]: https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
+[devenv]: https://devenv.sh/
+[tue]: https://github.com/trezor/trezor-user-env
