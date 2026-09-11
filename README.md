@@ -38,7 +38,8 @@ With `--pubkey` it computes the address from a device public key instead, and `-
 
 ## Development
 
-`nix build` builds the binary and runs the unit tests, and `nix run . -- <args>` runs it.
+`nix build` builds the binary, runs the unit tests, and installs bash, zsh, and fish completions.
+`nix run . -- <args>` runs it.
 The development shell is [devenv][devenv], where `check` runs formatting, lints, tests, and the recovery script's vectors.
 The emulator tests are ignored by default and run against [trezor-user-env][tue]:
 

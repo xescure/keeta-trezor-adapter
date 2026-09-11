@@ -7,7 +7,7 @@ mod trezor;
 use std::io::{self, BufRead, Write};
 use std::process::ExitCode;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{Args, CommandFactory, Parser, Subcommand};
 
 use crate::error::{Error, Result};
 use crate::identity::Identity;
@@ -66,6 +66,9 @@ enum Command {
         #[arg(long)]
         yes: bool,
     },
+    /// Print a shell completion script. Run by the Nix package build.
+    #[command(hide = true)]
+    Completions { shell: clap_complete::Shell },
 }
 
 fn main() -> ExitCode {
@@ -78,6 +81,10 @@ fn main() -> ExitCode {
             expect,
             yes,
         } => run_sign(&block_hash, &id.identity(), &expect, yes),
+        Command::Completions { shell } => {
+            write_completions(shell, &mut io::stdout());
+            Ok(())
+        }
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
@@ -164,4 +171,64 @@ fn run_sign(block_hash_hex: &str, identity: &Identity, expect: &str, yes: bool) 
     eprintln!("verified : ok");
     println!("{address} {}", hex::encode(reply.signature));
     Ok(())
+}
+
+fn write_completions(shell: clap_complete::Shell, out: &mut dyn Write) {
+    let mut buf = Vec::new();
+    clap_complete::generate(shell, &mut Cli::command(), "keeta-trezor", &mut buf);
+    let mut script = String::from_utf8(buf).expect("clap_complete emits UTF-8");
+    if shell == clap_complete::Shell::Bash {
+        // clap_complete 4.6.9 escapes the `-` in `keeta-trezor` as `__` in the dispatch
+        // (`cmd="keeta__trezor__subcmd__sign"`) but as `__subcmd__` in the case labels,
+        // so subcommand flags never complete. Align the labels with the dispatch.
+        script = script.replace("keeta__subcmd__trezor", "keeta__trezor");
+    }
+    out.write_all(script.as_bytes())
+        .expect("writing completion script");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap_complete::Shell;
+
+    fn completion(shell: Shell) -> String {
+        let mut out = Vec::new();
+        write_completions(shell, &mut out);
+        String::from_utf8(out).unwrap()
+    }
+
+    #[test]
+    fn bash_completion_offers_subcommands_and_flags() {
+        let script = completion(Shell::Bash);
+        for word in ["address", "sign", "--expect", "--index", "--user", "--host"] {
+            assert!(script.contains(word), "missing {word}");
+        }
+    }
+
+    #[test]
+    fn bash_completion_dispatch_matches_case_labels() {
+        let script = completion(Shell::Bash);
+        let names: Vec<&str> = script
+            .lines()
+            .filter_map(|l| l.trim().strip_prefix("cmd=\""))
+            .map(|rest| rest.trim_end_matches('"'))
+            .filter(|name| !name.is_empty())
+            .collect();
+        assert!(names.contains(&"keeta__trezor__subcmd__sign"));
+        for name in names {
+            let label = format!("{name})");
+            assert!(
+                script.lines().any(|l| l.trim() == label),
+                "no case for {name}"
+            );
+        }
+    }
+
+    #[test]
+    fn completions_subcommand_is_hidden_from_help() {
+        let help = Cli::command().render_help().to_string();
+        assert!(help.contains("address"));
+        assert!(!help.contains("completions"));
+    }
 }

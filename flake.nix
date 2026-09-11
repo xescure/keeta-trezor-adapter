@@ -23,13 +23,19 @@
               fileset = lib.fileset.unions [ ./Cargo.toml ./Cargo.lock ./src ./tests ];
             };
             cargoLock.lockFile = ./Cargo.lock;
-            nativeBuildInputs = [ pkgs.pkg-config pkgs.rustfmt ];
+            nativeBuildInputs = [ pkgs.pkg-config pkgs.rustfmt pkgs.installShellFiles ];
             buildInputs = [ pkgs.libusb1 ];
             # Same workaround as devenv.nix: rasn-compiler only looks for rustfmt in $CARGO_HOME/bin.
             preBuild = ''
               export CARGO_HOME="$NIX_BUILD_TOP/cargo-home"
               mkdir -p "$CARGO_HOME/bin"
               ln -s ${lib.getExe pkgs.rustfmt} "$CARGO_HOME/bin/rustfmt"
+            '';
+            postInstall = lib.optionalString (pkgs.stdenv.buildPlatform.canExecute pkgs.stdenv.hostPlatform) ''
+              installShellCompletion --cmd keeta-trezor \
+                --bash <($out/bin/keeta-trezor completions bash) \
+                --fish <($out/bin/keeta-trezor completions fish) \
+                --zsh <($out/bin/keeta-trezor completions zsh)
             '';
             meta = {
               mainProgram = "keeta-trezor";
