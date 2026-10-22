@@ -38,9 +38,10 @@ With `--pubkey` it computes the address from a device public key instead, and `-
 
 ## Development
 
-`nix build` builds the binary, runs the unit tests, and installs bash, zsh, and fish completions.
+`nix build` builds the binary and installs bash, zsh, and fish completions.
 `nix run . -- <args>` runs it.
-The development shell is [devenv][devenv], where `check` runs formatting, lints, tests, and the recovery script's vectors.
+`nix flake check` runs formatting, lints, the unit tests, and the recovery script's vectors; CI runs the same checks.
+The development shell is `nix develop` (or direnv's `use flake`), with the toolchain, libusb, Python for the recovery script, and the emulator commands below.
 The emulator tests are ignored by default and run against [trezor-user-env][tue]:
 
 ```
@@ -49,8 +50,8 @@ emulator-setup    # terminal 2, loads the public test mnemonic
 KEETA_TREZOR_EMULATOR=1 cargo test --locked --test emulator -- --ignored --test-threads=1
 ```
 
-Entering the shell points `~/.cargo/bin/rustfmt` at the shell's `rustfmt`, which the Keeta ASN.1 build script requires.
-`devenv.yaml` permits the Python `ecdsa` package despite CVE-2024-23342, a timing side channel in signing, because the recovery script only derives keys.
+The shell's cargo, rustc, rustfmt, and clippy share one directory, because the Keeta ASN.1 build script only finds `rustfmt` next to cargo.
+`flake.nix` permits the Python `ecdsa` package despite CVE-2024-23342, a timing side channel in signing, for the recovery script alone, because it only derives keys.
 
 ## License
 
@@ -61,5 +62,4 @@ Entering the shell points `~/.cargo/bin/rustfmt` at the shell's `rustfmt`, which
 [slip13]: https://github.com/satoshilabs/slips/blob/master/slip-0013.md
 [slip10]: https://github.com/satoshilabs/slips/blob/master/slip-0010.md
 [bip39]: https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki
-[devenv]: https://devenv.sh/
 [tue]: https://github.com/trezor/trezor-user-env
