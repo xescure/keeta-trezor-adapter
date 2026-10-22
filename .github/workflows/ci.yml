@@ -1,0 +1,29 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  # Weekly, so main's Nix cache (evicted after 7 days unused) stays warm.
+  schedule:
+    - cron: "41 4 * * 1"
+
+# A pull request's runs share a group by number: a merged pull request's
+# "closed" run gets the base branch as its ref, and must not cancel main's push.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # fmt, clippy, the unit tests and the recovery script's vectors, on one
+  # restored Nix store. A CLI: no image to build or push.
+  build:
+    permissions:
+      contents: read
+      packages: write
+    uses: xescure/ci/.github/workflows/nix-image.yml@abdcdb02bfe0db1b4f374a0040ca09cd003f355b # main
+    with:
+      checks: fmt clippy tests recovery
+      images: ""
+      lockfiles: Cargo.lock
+      push: false

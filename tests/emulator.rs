@@ -1,5 +1,5 @@
 //! Runs only with KEETA_TREZOR_EMULATOR=1 against a trezor-user-env T3B1
-//! emulator (`devenv shell -- emulator`, then `emulator-setup`) loaded with
+//! emulator (`nix develop -c emulator`, then `emulator-setup`) loaded with
 //! the public `abandon … about` mnemonic, no passphrase.
 //!
 //! Button presses go straight to the emulator's debuglink UDP port. The
