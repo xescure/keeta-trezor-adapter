@@ -21,7 +21,7 @@ jobs:
     permissions:
       contents: read
       packages: write
-    uses: xescure/ci/.github/workflows/nix-image.yml@abdcdb02bfe0db1b4f374a0040ca09cd003f355b # main
+    uses: xescure/ci/.github/workflows/nix-image.yml@3def945490e9e1743a59e0ad5e76ef991b9b43b8 # main
     with:
       checks: fmt clippy tests recovery
       images: ""
